@@ -2,7 +2,7 @@ name: Repository Intelligence CI
 on:
   pull_request:
   push:
-    branches: ["feat/repository-intelligence-v1", "feat/repository-intelligence-v2", "feat/repository-intelligence-v3", "feat/governed-developer-os-v1", "feat/governed-developer-os-v2"]
+    branches: ["feat/repository-intelligence-v1", "feat/repository-intelligence-v2", "feat/repository-intelligence-v3", "feat/governed-developer-os-v1", "feat/governed-developer-os-v2", "feat/governed-developer-os-v3"]
 permissions:
   contents: read
 jobs:
