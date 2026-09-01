@@ -2,7 +2,7 @@
 
 This repository is being evolved from file-dump prompting scripts into a deterministic repository-intelligence engine for governed software development.
 
-## v3 capabilities
+## v3 capabilities + Phase N Developer OS v1
 
 - SHA-256 repository file inventory;
 - Python symbol/import/call graphs;
@@ -38,3 +38,17 @@ cross-language semantic relationships remain outside v3 coverage.
 ## Legacy scripts
 
 `base_print.py` and `base_print_ai_model.py` remain preserved as historical utilities.
+
+
+## Governed Developer OS v1
+
+```bash
+repo-intel developer-plan repository-graph.json change-impact.json \
+  --change-request "Fix the requested behavior" \
+  --out developer-plan.json
+```
+
+The generated plan is proposal-only. It composes bounded `repo.read`,
+`test.execute`, and `repo.patch` scopes, requires retesting after mutation,
+requires repository-intelligence recomputation, and requires final evidence.
+The patch stage remains subject to separate HPL execution authority.

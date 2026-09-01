@@ -6,6 +6,7 @@ from .architecture import load_architecture_contract, map_files_to_components
 from .graph import build_repository_graph
 from .impact import analyze_change_impact
 from .scope import build_openhands_scope
+from .developer_os import build_developer_plan
 
 
 def _write(path:str,data:dict)->None:
@@ -34,6 +35,12 @@ def main()->None:
     s.add_argument("--operation",required=True,choices=["repo.read","test.execute","repo.patch"])
     s.add_argument("--out",default="openhands-scope.json")
 
+    d=sub.add_parser("developer-plan")
+    d.add_argument("graph")
+    d.add_argument("impact")
+    d.add_argument("--change-request",required=True)
+    d.add_argument("--out",default="developer-plan.json")
+
     a=p.parse_args()
 
     if a.cmd=="graph":
@@ -45,10 +52,14 @@ def main()->None:
     elif a.cmd=="impact":
         graph=json.loads(Path(a.graph).read_text(encoding="utf-8"))
         data=analyze_change_impact(graph,a.changed,a.depth)
-    else:
+    elif a.cmd=="openhands-scope":
         graph=json.loads(Path(a.graph).read_text(encoding="utf-8"))
         impact=json.loads(Path(a.impact).read_text(encoding="utf-8"))
         data=build_openhands_scope(graph,impact,a.operation)
+    else:
+        graph=json.loads(Path(a.graph).read_text(encoding="utf-8"))
+        impact=json.loads(Path(a.impact).read_text(encoding="utf-8"))
+        data=build_developer_plan(graph,impact,a.change_request)
 
     _write(a.out,data)
 
