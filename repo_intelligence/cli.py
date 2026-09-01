@@ -8,6 +8,7 @@ from .impact import analyze_change_impact
 from .scope import build_openhands_scope
 from .developer_os import build_developer_plan
 from .hpl_binding import build_repo_read_binding, build_test_execute_binding
+from .kernel_harness import invoke_kernel_binding
 
 
 def _write(path:str,data:dict)->None:
@@ -54,6 +55,13 @@ def main()->None:
     t.add_argument("--test-path",required=True)
     t.add_argument("--out",default="hpl-test-binding.json")
 
+    k=sub.add_parser("kernel-run")
+    k.add_argument("binding")
+    k.add_argument("--kernel-root",required=True)
+    k.add_argument("--execute",action="store_true")
+    k.add_argument("--trace-dir")
+    k.add_argument("--out",default="kernel-harness-receipt.json")
+
     a=p.parse_args()
 
     if a.cmd=="graph":
@@ -76,9 +84,17 @@ def main()->None:
     elif a.cmd=="hpl-read-binding":
         plan=json.loads(Path(a.developer_plan).read_text(encoding="utf-8"))
         data=build_repo_read_binding(plan,conversation_id=a.conversation_id,path=a.path)
-    else:
+    elif a.cmd=="hpl-test-binding":
         plan=json.loads(Path(a.developer_plan).read_text(encoding="utf-8"))
         data=build_test_execute_binding(plan,workspace=a.workspace,test_path=a.test_path)
+    else:
+        binding=json.loads(Path(a.binding).read_text(encoding="utf-8"))
+        data=invoke_kernel_binding(
+            binding,
+            kernel_root=a.kernel_root,
+            execute=a.execute,
+            trace_dir=a.trace_dir,
+        )
 
     _write(a.out,data)
 
