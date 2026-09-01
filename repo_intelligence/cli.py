@@ -7,6 +7,7 @@ from .graph import build_repository_graph
 from .impact import analyze_change_impact
 from .scope import build_openhands_scope
 from .developer_os import build_developer_plan
+from .hpl_binding import build_repo_read_binding, build_test_execute_binding
 
 
 def _write(path:str,data:dict)->None:
@@ -41,6 +42,18 @@ def main()->None:
     d.add_argument("--change-request",required=True)
     d.add_argument("--out",default="developer-plan.json")
 
+    b=sub.add_parser("hpl-read-binding")
+    b.add_argument("developer_plan")
+    b.add_argument("--conversation-id",required=True)
+    b.add_argument("--path",required=True)
+    b.add_argument("--out",default="hpl-read-binding.json")
+
+    t=sub.add_parser("hpl-test-binding")
+    t.add_argument("developer_plan")
+    t.add_argument("--workspace",required=True)
+    t.add_argument("--test-path",required=True)
+    t.add_argument("--out",default="hpl-test-binding.json")
+
     a=p.parse_args()
 
     if a.cmd=="graph":
@@ -56,10 +69,16 @@ def main()->None:
         graph=json.loads(Path(a.graph).read_text(encoding="utf-8"))
         impact=json.loads(Path(a.impact).read_text(encoding="utf-8"))
         data=build_openhands_scope(graph,impact,a.operation)
-    else:
+    elif a.cmd=="developer-plan":
         graph=json.loads(Path(a.graph).read_text(encoding="utf-8"))
         impact=json.loads(Path(a.impact).read_text(encoding="utf-8"))
         data=build_developer_plan(graph,impact,a.change_request)
+    elif a.cmd=="hpl-read-binding":
+        plan=json.loads(Path(a.developer_plan).read_text(encoding="utf-8"))
+        data=build_repo_read_binding(plan,conversation_id=a.conversation_id,path=a.path)
+    else:
+        plan=json.loads(Path(a.developer_plan).read_text(encoding="utf-8"))
+        data=build_test_execute_binding(plan,workspace=a.workspace,test_path=a.test_path)
 
     _write(a.out,data)
 
