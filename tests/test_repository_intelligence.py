@@ -48,3 +48,67 @@ def test_unknown_changed_path_is_reported(tmp_path:Path):
     graph=build_repository_graph(tmp_path)
     impact=analyze_change_impact(graph,["missing.py"])
     assert impact["unknown_paths"]==["missing.py"]
+
+
+from pathlib import Path
+import json
+from repo_intelligence.architecture import (
+    ArchitectureContractError,
+    map_files_to_components,
+    validate_architecture_contract,
+)
+from repo_intelligence.graph import build_repository_graph
+from repo_intelligence.impact import analyze_change_impact
+from repo_intelligence.scope import build_openhands_scope
+
+
+def test_architecture_contract_maps_files(tmp_path:Path):
+    (tmp_path/"src").mkdir()
+    (tmp_path/"tests").mkdir()
+    (tmp_path/"src"/"app.py").write_text("def f():\n    return 1\n",encoding="utf-8")
+    (tmp_path/"tests"/"test_app.py").write_text("from src.app import f\n",encoding="utf-8")
+    graph=build_repository_graph(tmp_path)
+    contract=validate_architecture_contract({
+        "schema_version":"1.0",
+        "components":[
+            {"name":"runtime","paths":["src/**"]},
+            {"name":"tests","paths":["tests/**"]},
+        ],
+        "dependencies":[
+            {"from":"tests","to":"runtime","type":"depends_on"}
+        ],
+    })
+    membership=map_files_to_components(graph["files"],contract)
+    assert {"file":"src/app.py","components":["runtime"]} in membership
+    assert contract["contract_sha256"].startswith("sha256:")
+
+
+def test_architecture_contract_rejects_unknown_dependency():
+    try:
+        validate_architecture_contract({
+            "schema_version":"1.0",
+            "components":[{"name":"runtime","paths":["src/**"]}],
+            "dependencies":[{"from":"runtime","to":"missing","type":"depends_on"}],
+        })
+    except ArchitectureContractError:
+        pass
+    else:
+        raise AssertionError("expected ArchitectureContractError")
+
+
+def test_openhands_scope_is_proposal_only(tmp_path:Path):
+    (tmp_path/"src").mkdir()
+    (tmp_path/"tests").mkdir()
+    (tmp_path/"src"/"calc.py").write_text("def add(a,b):\n    return a+b\n",encoding="utf-8")
+    (tmp_path/"tests"/"test_calc.py").write_text(
+        "from src.calc import add\n\ndef test_add():\n    assert add(1,2)==3\n",
+        encoding="utf-8",
+    )
+    graph=build_repository_graph(tmp_path)
+    impact=analyze_change_impact(graph,["src/calc.py"])
+    scope=build_openhands_scope(graph,impact,"repo.patch")
+    assert scope["authority_semantics"]=="proposal_scope_only"
+    assert scope["execution_authorized"] is False
+    assert scope["writable_paths"]==["src/calc.py"]
+    assert "tests/test_calc.py" in scope["test_paths"]
+    assert scope["scope_sha256"].startswith("sha256:")

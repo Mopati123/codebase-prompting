@@ -1,19 +1,57 @@
 from __future__ import annotations
 import argparse,json
 from pathlib import Path
+
+from .architecture import load_architecture_contract, map_files_to_components
 from .graph import build_repository_graph
 from .impact import analyze_change_impact
+from .scope import build_openhands_scope
+
+
+def _write(path:str,data:dict)->None:
+    Path(path).write_text(json.dumps(data,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+    print(path)
 
 
 def main()->None:
     p=argparse.ArgumentParser(prog="repo-intel")
     sub=p.add_subparsers(dest="cmd",required=True)
-    g=sub.add_parser("graph"); g.add_argument("root"); g.add_argument("--out",default="repository-graph.json")
-    i=sub.add_parser("impact"); i.add_argument("graph"); i.add_argument("changed",nargs="+"); i.add_argument("--depth",type=int,default=3); i.add_argument("--out",default="change-impact.json")
-    a=p.parse_args()
-    if a.cmd=="graph": data=build_repository_graph(a.root)
-    else: data=analyze_change_impact(json.loads(Path(a.graph).read_text(encoding="utf-8")),a.changed,a.depth)
-    Path(a.out).write_text(json.dumps(data,indent=2,sort_keys=True)+"\n",encoding="utf-8")
-    print(a.out)
 
-if __name__=="__main__": main()
+    g=sub.add_parser("graph")
+    g.add_argument("root")
+    g.add_argument("--architecture")
+    g.add_argument("--out",default="repository-graph.json")
+
+    i=sub.add_parser("impact")
+    i.add_argument("graph")
+    i.add_argument("changed",nargs="+")
+    i.add_argument("--depth",type=int,default=3)
+    i.add_argument("--out",default="change-impact.json")
+
+    s=sub.add_parser("openhands-scope")
+    s.add_argument("graph")
+    s.add_argument("impact")
+    s.add_argument("--operation",required=True,choices=["repo.read","test.execute","repo.patch"])
+    s.add_argument("--out",default="openhands-scope.json")
+
+    a=p.parse_args()
+
+    if a.cmd=="graph":
+        data=build_repository_graph(a.root)
+        if a.architecture:
+            contract=load_architecture_contract(a.architecture)
+            data["architecture_contract"]=contract
+            data["architecture_membership"]=map_files_to_components(data["files"],contract)
+    elif a.cmd=="impact":
+        graph=json.loads(Path(a.graph).read_text(encoding="utf-8"))
+        data=analyze_change_impact(graph,a.changed,a.depth)
+    else:
+        graph=json.loads(Path(a.graph).read_text(encoding="utf-8"))
+        impact=json.loads(Path(a.impact).read_text(encoding="utf-8"))
+        data=build_openhands_scope(graph,impact,a.operation)
+
+    _write(a.out,data)
+
+
+if __name__=="__main__":
+    main()
