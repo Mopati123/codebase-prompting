@@ -2,7 +2,7 @@ name: Repository Intelligence CI
 on:
   pull_request:
   push:
-    branches: ["feat/repository-intelligence-v1", "feat/repository-intelligence-v2", "feat/repository-intelligence-v3", "feat/governed-developer-os-v1"]
+    branches: ["feat/repository-intelligence-v1", "feat/repository-intelligence-v2", "feat/repository-intelligence-v3", "feat/governed-developer-os-v1", "feat/governed-developer-os-v2"]
 permissions:
   contents: read
 jobs:
@@ -22,3 +22,5 @@ jobs:
       - run: python -c 'import json; d=json.load(open("/tmp/openhands-scope.json")); assert d["execution_authorized"] is False'
       - run: repo-intel developer-plan /tmp/repository-graph.json /tmp/change-impact.json --change-request 'CI deterministic developer plan' --out /tmp/developer-plan.json
       - run: python -c 'import json; d=json.load(open("/tmp/developer-plan.json")); assert d["execution_authorized"] is False and d["invariants"]["patch_requires_hpl_authority"] is True'
+      - run: repo-intel hpl-read-binding /tmp/developer-plan.json --conversation-id 123e4567-e89b-12d3-a456-426614174000 --path README.md --out /tmp/hpl-read-binding.json
+      - run: python -c 'import json; d=json.load(open("/tmp/hpl-read-binding.json")); assert d["policy"]["effect_type"] == "OPENHANDS_REPO_READ" and d["execution_authorized"] is False'
