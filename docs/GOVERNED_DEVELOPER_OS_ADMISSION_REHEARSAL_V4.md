@@ -16,9 +16,10 @@ target repository
   -> STOP
 ```
 
-The rehearsal requires `execute=False` and refuses any unexpected runtime
-result. Its output records deterministic hashes for the repository graph, impact,
-developer plan, binding, kernel harness receipt, and rehearsal itself.
+The rehearsal always invokes the kernel harness with `execute=False` and
+refuses any unexpected runtime result. Its output records deterministic hashes
+for the repository graph, impact, developer plan, binding, kernel harness
+receipt, and rehearsal receipt.
 
 The kernel harness v4 also prepends the pinned kernel's `src/` directory to
 `PYTHONPATH` and prefers `<kernel>/.venv/bin/python` when present. This makes
