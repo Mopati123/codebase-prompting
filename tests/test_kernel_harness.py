@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest import mock
 import json
+import os
 
 from repo_intelligence.kernel_harness import (
     CERTIFIED_KERNEL_RUNNER_HEAD,
@@ -22,10 +23,14 @@ def _binding():
     }
 
 
-def test_verify_kernel_checkout_requires_exact_head(tmp_path:Path):
+def _tree(tmp_path:Path):
     (tmp_path/".git").mkdir()
     (tmp_path/"src"/"hpl"/"runtime").mkdir(parents=True)
     (tmp_path/"src"/"hpl"/"runtime"/"agentic_runner.py").write_text("x=1\n",encoding="utf-8")
+
+
+def test_verify_kernel_checkout_requires_exact_head(tmp_path:Path):
+    _tree(tmp_path)
     ok=mock.Mock(returncode=0,stdout=CERTIFIED_KERNEL_RUNNER_HEAD+"\n")
     with mock.patch("repo_intelligence.kernel_harness.subprocess.run",return_value=ok):
         assert verify_kernel_checkout(tmp_path)==tmp_path.resolve()
@@ -45,14 +50,11 @@ def test_verify_kernel_checkout_refuses_wrong_head(tmp_path:Path):
             raise AssertionError("expected KernelHarnessError")
 
 
-def test_harness_defaults_to_admission_only(tmp_path:Path):
-    (tmp_path/".git").mkdir()
-    (tmp_path/"src"/"hpl"/"runtime").mkdir(parents=True)
-    (tmp_path/"src"/"hpl"/"runtime"/"agentic_runner.py").write_text("x=1\n",encoding="utf-8")
-
+def test_harness_defaults_to_admission_only_and_sets_kernel_pythonpath(tmp_path:Path):
+    _tree(tmp_path)
     calls=[]
     def fake_run(cmd,**kwargs):
-        calls.append(cmd)
+        calls.append((cmd,kwargs))
         if cmd[:3]==["git","rev-parse","HEAD"]:
             return mock.Mock(returncode=0,stdout=CERTIFIED_KERNEL_RUNNER_HEAD+"\n",stderr="")
         out=Path(cmd[cmd.index("--out")+1])
@@ -62,17 +64,15 @@ def test_harness_defaults_to_admission_only(tmp_path:Path):
     with mock.patch("repo_intelligence.kernel_harness.subprocess.run",side_effect=fake_run):
         receipt=invoke_kernel_binding(_binding(),kernel_root=tmp_path)
 
-    runner_cmd=calls[1]
+    runner_cmd,kwargs=calls[1]
     assert "--execute" not in runner_cmd
     assert receipt["execution_requested"] is False
     assert receipt["kernel_result"]["runtime"] is None
+    assert kwargs["env"]["PYTHONPATH"].split(os.pathsep)[0]==str((tmp_path/"src").resolve())
 
 
 def test_harness_execute_is_explicit(tmp_path:Path):
-    (tmp_path/".git").mkdir()
-    (tmp_path/"src"/"hpl"/"runtime").mkdir(parents=True)
-    (tmp_path/"src"/"hpl"/"runtime"/"agentic_runner.py").write_text("x=1\n",encoding="utf-8")
-
+    _tree(tmp_path)
     calls=[]
     def fake_run(cmd,**kwargs):
         calls.append(cmd)
