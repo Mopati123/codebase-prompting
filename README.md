@@ -52,3 +52,13 @@ The generated plan is proposal-only. It composes bounded `repo.read`,
 `test.execute`, and `repo.patch` scopes, requires retesting after mutation,
 requires repository-intelligence recomputation, and requires final evidence.
 The patch stage remains subject to separate HPL execution authority.
+
+
+## Governed Developer OS HPL binding v2
+
+Phase N v2 emits HPL-compatible admission payloads for the already-certified
+OpenHands `repo.read`, `test.execute`, and `repo.patch` capabilities.
+
+The binding layer remains proposal-only and network-free. HPL must still admit
+the consequential request and mint the ExecutionToken before any mutation can
+occur.
