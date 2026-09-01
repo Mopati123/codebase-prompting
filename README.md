@@ -75,3 +75,18 @@ repo-intel kernel-run hpl-read-binding.json \
 The harness pins the kernel checkout to the certified Developer OS Agentic
 Runner head and defaults to admission-only. External effects require explicit
 `--execute`, after which HPL admission still remains mandatory.
+
+
+## Admission-only end-to-end rehearsal v4
+
+```bash
+repo-intel rehearse-admission /path/to/target-repo README.md \
+  --change-request "Inspect README impact" \
+  --inspect-path README.md \
+  --conversation-id 123e4567-e89b-12d3-a456-426614174000 \
+  --kernel-root /path/to/apex-hpl-governed-kernel \
+  --out developer-os-admission-rehearsal.json
+```
+
+This composes repository intelligence through HPL scheduler admission and then
+stops. It cannot execute an OpenHands effect.

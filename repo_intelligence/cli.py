@@ -9,6 +9,7 @@ from .scope import build_openhands_scope
 from .developer_os import build_developer_plan
 from .hpl_binding import build_repo_read_binding, build_test_execute_binding
 from .kernel_harness import invoke_kernel_binding
+from .rehearsal import rehearse_admission
 
 
 def _write(path:str,data:dict)->None:
@@ -62,6 +63,16 @@ def main()->None:
     k.add_argument("--trace-dir")
     k.add_argument("--out",default="kernel-harness-receipt.json")
 
+    r=sub.add_parser("rehearse-admission")
+    r.add_argument("target_root")
+    r.add_argument("changed",nargs="+")
+    r.add_argument("--change-request",required=True)
+    r.add_argument("--inspect-path",required=True)
+    r.add_argument("--conversation-id",required=True)
+    r.add_argument("--kernel-root",required=True)
+    r.add_argument("--depth",type=int,default=3)
+    r.add_argument("--out",default="developer-os-admission-rehearsal.json")
+
     a=p.parse_args()
 
     if a.cmd=="graph":
@@ -87,13 +98,23 @@ def main()->None:
     elif a.cmd=="hpl-test-binding":
         plan=json.loads(Path(a.developer_plan).read_text(encoding="utf-8"))
         data=build_test_execute_binding(plan,workspace=a.workspace,test_path=a.test_path)
-    else:
+    elif a.cmd=="kernel-run":
         binding=json.loads(Path(a.binding).read_text(encoding="utf-8"))
         data=invoke_kernel_binding(
             binding,
             kernel_root=a.kernel_root,
             execute=a.execute,
             trace_dir=a.trace_dir,
+        )
+    else:
+        data=rehearse_admission(
+            target_root=a.target_root,
+            changed_paths=a.changed,
+            change_request=a.change_request,
+            inspect_path=a.inspect_path,
+            conversation_id=a.conversation_id,
+            kernel_root=a.kernel_root,
+            impact_depth=a.depth,
         )
 
     _write(a.out,data)

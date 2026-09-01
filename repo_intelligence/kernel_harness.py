@@ -1,13 +1,14 @@
-"""Cross-repository Governed Developer OS harness v3.
+"""Cross-repository Governed Developer OS harness v4.
 
-This harness invokes the certified kernel-side Agentic Runner as a separate
-process. It pins the kernel repository to an exact commit before invocation.
-Default mode is admission-only; external effects require explicit execute=True.
+The harness invokes the certified kernel-side Agentic Runner as a separate
+process, pins the kernel checkout to an exact commit, and defaults to
+admission-only execution.
 """
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -56,11 +57,20 @@ def verify_kernel_checkout(
     return root
 
 
+def _resolve_python(root:Path,python_executable:str|None)->str:
+    if python_executable:
+        return python_executable
+    candidate=root/".venv"/"bin"/"python"
+    if candidate.is_file():
+        return str(candidate)
+    return "python"
+
+
 def invoke_kernel_binding(
     binding:dict,
     *,
     kernel_root:str|Path,
-    python_executable:str="python",
+    python_executable:str|None=None,
     execute:bool=False,
     trace_dir:str|Path|None=None,
     timeout_seconds:int=60,
@@ -79,8 +89,9 @@ def invoke_kernel_binding(
             encoding="utf-8",
         )
 
+        python_cmd=_resolve_python(root,python_executable)
         cmd=[
-            python_executable,
+            python_cmd,
             "-m",
             "hpl.runtime.agentic_runner",
             str(binding_path),
@@ -92,9 +103,11 @@ def invoke_kernel_binding(
         if execute:
             cmd.append("--execute")
 
-        env=None
-        # The caller owns environment configuration for OpenHands/HPL. We avoid
-        # injecting credentials or service endpoints here.
+        env=os.environ.copy()
+        src=str((root/"src").resolve())
+        current=env.get("PYTHONPATH","")
+        env["PYTHONPATH"]=src if not current else src+os.pathsep+current
+
         result=subprocess.run(
             cmd,
             cwd=root,
@@ -106,14 +119,14 @@ def invoke_kernel_binding(
         )
         if not result_path.is_file():
             raise KernelHarnessError(
-                f"kernel runner produced no result (exit={result.returncode})"
+                f"kernel runner produced no result (exit={result.returncode}): {result.stderr.strip()}"
             )
         payload=json.loads(result_path.read_text(encoding="utf-8"))
         if not isinstance(payload,dict):
             raise KernelHarnessError("kernel runner result must be an object")
 
     core={
-        "schema_version":"1.0",
+        "schema_version":"1.1",
         "authority_semantics":"kernel_runner_separate_process",
         "execution_requested":bool(execute),
         "binding_sha256":binding["binding_sha256"],
