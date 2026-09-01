@@ -62,3 +62,16 @@ OpenHands `repo.read`, `test.execute`, and `repo.patch` capabilities.
 The binding layer remains proposal-only and network-free. HPL must still admit
 the consequential request and mint the ExecutionToken before any mutation can
 occur.
+
+
+## Cross-repository kernel harness v3
+
+```bash
+repo-intel kernel-run hpl-read-binding.json \
+  --kernel-root /path/to/apex-hpl-governed-kernel \
+  --out kernel-harness-receipt.json
+```
+
+The harness pins the kernel checkout to the certified Developer OS Agentic
+Runner head and defaults to admission-only. External effects require explicit
+`--execute`, after which HPL admission still remains mandatory.
